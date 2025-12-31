@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smith Construction: ICE Hero</title>
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
+        canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+        #ui { position: absolute; top: 10px; left: 10px; color: #FFD700; pointer-events: none; z-index: 10; font-size: 14px; text-shadow: 2px 2px 2px #000; font-weight: bold; }
+        #ui span.company-name { color: #1E90FF; font-size: 16px; }
+        #ticker { position: absolute; top: 80px; width: 100%; color: #FFD700; font-weight: bold; font-size: 20px; white-space: nowrap; pointer-events: none; z-index: 5; display: none; text-shadow: 2px 2px 2px #000; }
+        
+        #overlay, #intro-overlay, #win-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0, 0, 0, 0.9); color: #0f0; display: flex; 
+            flex-direction: column; justify-content: center; align-items: center; 
+            text-align: center; z-index: 20; padding: 20px; box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        #intro-overlay { z-index: 30; background: rgba(0, 0, 0, 0.95); display: none; }
+        #win-overlay { z-index: 40; background: rgba(0, 0, 40, 0.95); display: none; color: #FFD700; }
+        
+        .manual-box { max-width: 500px; text-align: left; border: 1px solid #1E90FF; padding: 20px; background: rgba(0,20,40,0.8); border-radius: 10px; }
+        .manual-box h2 { color: #FFD700; text-align: center; margin-top: 0; border-bottom: 1px solid #FFD700; }
+        .manual-box h3 { color: #1E90FF; font-size: 14px; margin-bottom: 5px; }
+        .manual-box p, .manual-box li { font-size: 13px; line-height: 1.4; color: #cfc; }
+
+        .stats-row { color: #ff0; font-weight: bold; margin-bottom: 15px; font-size: 18px; }
+        .shop-container { display: flex; flex-direction: row; gap: 20px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; width: 100%; }
+        .shop-box { background: rgba(0,255,0,0.05); border: 1px solid #0f0; padding: 10px; width: 280px; border-radius: 8px; }
+        h3 { margin-top: 0; text-decoration: underline; font-size: 16px; }
+        button { 
+            background: #0f0; color: #000; border: none; padding: 10px 15px; 
+            font-family: monospace; font-weight: bold; font-size: 13px; 
+            margin: 5px; cursor: pointer; border-radius: 4px; width: 90%;
+            pointer-events: auto;
+        }
+        button:disabled { background: #131; color: #050; cursor: not-allowed; border: 1px solid #050; }
+        .start-week-btn { background: #ff0; color: #000; font-size: 18px; padding: 15px 30px; width: auto; margin-top: 20px; }
+        .quit-btn { background: #400; color: #f00; border: 1px solid #f00; font-size: 12px; padding: 8px 15px; width: auto; margin-top: 40px; opacity: 0.7; }
+        .quit-btn:hover { background: #600; opacity: 1; }
+        .build-info { font-size: 10px; color: #050; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div id="intro-overlay">
+        <div class="manual-box">
+            <h2>🏗️ SMITH CONSTRUCTION: FIELD MANUAL</h2>
+            <p><strong>Welcome to the Crew.</strong><br>You’ve been assigned to the <strong>Valero Division</strong> in Ardmore, OK. Keep the refinery clean, the supervisors happy, and build your fortune.</p>
+            <h3>🧤 HOW TO OPERATE</h3>
+            <ul>
+                <li><strong>Mission:</strong> Every day (Mon–Fri), oil spills appear.</li>
+                <li><strong>Cleaning:</strong> Use finger/mouse to aim. <strong>Hold down</strong> to blast spills.</li>
+                <li><strong>Clock:</strong> Fast cleaning earns a higher Efficiency Bonus.</li>
+                <li><strong>Supervisor:</strong> Don't take too long, or he'll get on the radio!</li>
+            </ul>
+            <h3>💰 YOUR CAREER PATH</h3>
+            <ul>
+                <li><strong>Goal:</strong> Reach <strong>$1,000,000</strong> to Retire in Luxury.</li>
+                <li><strong>Upgrades:</strong> Save for Hot Washers and 20k Hydroblasters.</li>
+                <li><strong>Weekend Shop:</strong> Opens every Friday after your shift.</li>
+            </ul>
+            <button class="start-week-btn" onclick="closeIntro()">GET TO WORK</button>
+        </div>
+    </div>
+
+    <div id="win-overlay">
+        <h1 style="font-size: 40px;">MISSION ACCOMPLISHED</h1>
+        <p style="font-size: 20px; color: #fff;">YOU'VE REACHED $1,000,000 AND RETIRED FROM THE REFINERY LIFE!</p>
+        <p>Your hard work at Smith Construction has paid off.</p>
+        <button class="start-week-btn" onclick="quitGame()">REPLAY CAREER</button>
+    </div>
+
+    <div id="ui">
+        <button onclick="location.href='index.html'" style="width:auto; padding:5px 10px; background:#444; color:#fff; font-size:10px; margin-bottom:5px;">← BACK TO HUB</button>
+        <br>
+        <span class="company-name">SMITH CONSTRUCTION - ICE UNIT</span><br>
+        TOOL: <span id="toolName">Garden Hose</span><br>
+        SAVINGS: $<span id="bank">0</span><br>
+        ASSETS: <span id="assetList" style="color: #FFD700;">None</span><br>
+        SHIFT: <span id="shift">Monday</span> | <span id="timer">0:00</span>
+    </div>
+
+    <div id="ticker"></div>
+
+    <div id="overlay">
+        <h1 id="overlay-title">SMITH CONSTRUCTION</h1>
+        <div id="stats-display" class="stats-row"></div>
+        <div id="shop-area" style="display:none;">
+            <div class="shop-container">
+                <div class="shop-box">
+                    <h3>PROFESSIONAL GEAR</h3>
+                    <div id="gear-list"></div>
+                </div>
+                <div class="shop-box">
+                    <h3>PERSONAL REWARDS</h3>
+                    <div id="life-list"></div>
+                </div>
+            </div>
+        </div>
+        <button id="startBtn" class="start-week-btn" onclick="startGame()">START MONDAY SHIFT</button>
+        <button class="quit-btn" onclick="quitGame()">I QUIT!</button>
+        <div class="build-info">SMITH CONSTRUCTION ARDMORE OK - VALERO DIVISION</div>
+    </div>
+
+    <canvas id="mainCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        const overlay = document.getElementById('overlay');
+        const winOverlay = document.getElementById('win-overlay');
+        const introOverlay = document.getElementById('intro-overlay');
+        const startBtn = document.getElementById('startBtn');
+        const shopArea = document.getElementById('shop-area');
+        const tickerEl = document.getElementById('ticker');
+
+        let savings = 0;
+        let currentToolIdx = 0;
+        let currentDayIdx = 0;
+        let shiftStartTime = 0;
+        let gameOver = true;
+        let isRetired = false;
+        let spills = [];
+        let mouse = { x: -100, y: -100, active: false };
+        let ownedItems = [];
+        let lastVacation = "";
+        let lastTickerTime = 0;
+
+        const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+        const RAMP = "$@BWM#&*o+=-:. ".split("");
+        const COLS = 100;
+        const ROWS = 45;
+
+        const TOOLS = [
+            { name: "Garden Hose", psi: 0.04, gpm: 5, price: 0 },
+            { name: "Used Hot Washer", psi: 0.12, gpm: 9, price: 2500 },
+            { name: "New Hot Washer", psi: 0.20, gpm: 12, price: 6000 },
+            { name: "Used 20k Blaster", psi: 0.35, gpm: 15, price: 20000 },
+            { name: "New 20k Blaster", psi: 0.55, gpm: 18, price: 50000 }
+        ];
+
+        const REWARDS = [
+            { name: "Local Cabin Trip", price: 1000, type: "vac" },
+            { name: "Mexico Vacation", price: 3000, type: "vac" },
+            { name: "Bahamas Trip", price: 5000, type: "vac" },
+            { name: "Old Work Truck", price: 5000, type: "car" },
+            { name: "Colorado Skiing", price: 7000, type: "vac" },
+            { name: "Used Truck", price: 20000, type: "car" },
+            { name: "New Truck", price: 50000, type: "car" },
+            { name: "New Corvette", price: 250000, type: "car" }
+        ];
+
+        const buffer = document.createElement('canvas');
+        buffer.width = COLS; buffer.height = ROWS;
+        const btx = buffer.getContext('2d', { willReadFrequently: true });
+
+        window.onload = () => { if (!localStorage.getItem('smith_hired')) introOverlay.style.display = 'flex'; }
+        function closeIntro() { localStorage.setItem('smith_hired', 'true'); introOverlay.style.display = 'none'; }
+        
+        function quitGame() {
+            if (isRetired || confirm("Are you sure you want to throw in the towel? You'll lose your savings and your fleet!")) {
+                localStorage.removeItem('smith_hired');
+                savings = 0; currentToolIdx = 0; currentDayIdx = 0; ownedItems = [];
+                location.reload();
+            }
+        }
+
+        function drawEnvironment() {
+            btx.fillStyle = "#eee"; 
+            btx.fillRect(0, 0, COLS, ROWS);
+
+            if (isRetired) {
+                btx.fillStyle = "#aaa";
+                btx.fillRect(20, 15, 60, 25);
+                btx.fillStyle = "#888";
+                btx.fillRect(15, 25, 15, 15); btx.fillRect(70, 25, 15, 15);
+                btx.fillStyle = "#000";
+                for(let i=0; i<5; i++) btx.fillRect(25+(i*12), 20, 5, 5);
+                btx.fillStyle = "#fff";
+                btx.fillRect(0, ROWS-5, COLS, 5);
+            } else {
+                btx.fillStyle = "#999"; btx.fillRect(20, 5, 12, ROWS);
+                btx.fillStyle = "#bbb"; btx.beginPath(); btx.arc(80, ROWS, 20, Math.PI, 0); btx.fill();
+                btx.fillStyle = "#777"; btx.fillRect(0, ROWS-3, COLS, 3);
+            }
+
+            let carX = isRetired ? 40 : 55;
+            let groundY = isRetired ? ROWS - 5 : ROWS - 3;
+
+            if (ownedItems.includes("New Corvette")) {
+                btx.fillStyle = "#ff0000"; 
+                btx.fillRect(carX, groundY-2, 16, 2); 
+                btx.fillRect(carX+6, groundY-4, 6, 2); 
+                btx.fillStyle = "#111"; 
+                btx.beginPath(); btx.arc(carX+3, groundY, 1.5, 0, Math.PI*2); btx.fill();
+                btx.beginPath(); btx.arc(carX+13, groundY, 1.5, 0, Math.PI*2); btx.fill();
+                if(isRetired) carX += 20;
+            }
+            if (ownedItems.some(i => i.includes("Truck"))) {
+                btx.fillStyle = "#0000ff"; 
+                btx.fillRect(carX, groundY-3, 10, 3); 
+                btx.fillRect(carX+10, groundY-6, 7, 6); 
+                btx.fillStyle = "#111"; 
+                btx.beginPath(); btx.arc(carX+3, groundY, 2, 0, Math.PI*2); btx.fill();
+                btx.beginPath(); btx.arc(carX+14, groundY, 2, 0, Math.PI*2); btx.fill();
+            }
+        }
+
+        function runTicker(text) {
+            tickerEl.style.display = 'block'; tickerEl.innerText = text;
+            tickerEl.style.left = '100%';
+            let pos = window.innerWidth;
+            const scroll = () => {
+                pos -= 5; tickerEl.style.left = pos + 'px';
+                if (pos > -tickerEl.offsetWidth) requestAnimationFrame(scroll);
+                else tickerEl.style.display = 'none';
+            };
+            scroll();
+        }
+
+        function startGame() {
+            if (currentDayIdx > 4) currentDayIdx = 0;
+            overlay.style.display = 'none';
+            generateSpills();
+            shiftStartTime = Date.now();
+            lastTickerTime = 0;
+            gameOver = false;
+        }
+
+        function endShift() {
+            gameOver = true;
+            const timeTaken = Math.floor((Date.now() - shiftStartTime) / 1000);
+            const pay = 1500 + (Math.max(0, 45 - timeTaken) * 40);
+            savings += pay;
+            
+            if (savings >= 1000000) {
+                isRetired = true;
+                winOverlay.style.display = 'flex';
+                return;
+            }
+
+            overlay.style.display = 'flex';
+            document.getElementById('stats-display').innerText = `Shift Pay: $${pay} | Total Savings: $${savings}`;
+            if (currentDayIdx < 4) {
+                currentDayIdx++;
+                startBtn.innerText = `START ${DAYS[currentDayIdx].toUpperCase()} SHIFT`;
+            } else {
+                currentDayIdx = 5; renderShop();
+                startBtn.innerText = "START NEW WORK WEEK";
+            }
+        }
+
+        function generateSpills() {
+            spills = [];
+            for (let i = 0; i < 12 + (currentDayIdx * 6); i++) {
+                spills.push({ x: 15+Math.random()*70, y: 10+Math.random()*25, r: 3+Math.random()*5, life: 1.0, color: Math.random()>0.75 ? "#fe0000" : "#000" });
+            }
+        }
+
+        function renderShop() {
+            shopArea.style.display = 'block';
+            const gearList = document.getElementById('gear-list');
+            const lifeList = document.getElementById('life-list');
+            gearList.innerHTML = ""; lifeList.innerHTML = "";
+            if (currentToolIdx < TOOLS.length - 1) {
+                const nextTool = TOOLS[currentToolIdx + 1];
+                const btn = document.createElement('button');
+                btn.innerText = `${nextTool.name} ($${nextTool.price})`;
+                btn.disabled = savings < nextTool.price;
+                btn.onclick = () => { savings -= nextTool.price; currentToolIdx++; renderShop(); };
+                gearList.appendChild(btn);
+            }
+            REWARDS.forEach(item => {
+                const btn = document.createElement('button');
+                const isOwned = ownedItems.includes(item.name);
+                btn.innerText = isOwned ? `OWNED: ${item.name}` : `${item.name} ($${item.price})`;
+                btn.disabled = isOwned || savings < item.price;
+                btn.onclick = () => { 
+                    savings -= item.price; ownedItems.push(item.name); 
+                    if(item.type === "vac") lastVacation = item.name;
+                    renderShop(); 
+                };
+                lifeList.appendChild(btn);
+            });
+            updateAssetUI();
+        }
+
+        function updateAssetUI() {
+            const assets = ownedItems.filter(i => i.includes("Truck") || i.includes("Corvette"));
+            document.getElementById('assetList').innerText = assets.length > 0 ? assets.join(", ") : "None";
+            document.getElementById('bank').innerText = savings.toLocaleString();
+        }
+
+        const updateInput = (e) => {
+            if (gameOver) return;
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            mouse.x = ((clientX - rect.left) / rect.width) * COLS;
+            mouse.y = ((clientY - rect.top) / rect.height) * ROWS;
+            if(e.touches) e.preventDefault();
+        };
+
+        window.addEventListener('mousedown', () => { if(!gameOver) mouse.active = true; });
+        window.addEventListener('mouseup', () => mouse.active = false);
+        window.addEventListener('mousemove', updateInput);
+        window.addEventListener('touchstart', (e) => { if(!gameOver) { mouse.active = true; updateInput(e); } }, {passive: false});
+        window.addEventListener('touchend', () => mouse.active = false);
+
+        function render() {
+            drawEnvironment();
+            const tool = TOOLS[currentToolIdx];
+            if (!gameOver) {
+                let activeSpills = 0;
+                spills.forEach(s => {
+                    if (s.life > 0) {
+                        activeSpills++;
+                        btx.fillStyle = s.color === "#fe0000" ? `rgba(254,0,0,${s.life})` : `rgba(0,0,0,${s.life})`;
+                        btx.beginPath(); btx.arc(s.x, s.y, s.r, 0, Math.PI*2); btx.fill();
+                        if (mouse.active) {
+                            let dist = Math.sqrt((mouse.x-s.x)**2 + (mouse.y-s.y)**2);
+                            if (dist < tool.gpm) s.life -= (s.color === "#fe0000" ? tool.psi/2.5 : tool.psi);
+                        }
+                    }
+                });
+                const currentSec = Math.floor((Date.now() - shiftStartTime)/1000);
+                if (currentSec > 0 && currentSec % 15 === 0 && currentSec !== lastTickerTime) {
+                    runTicker("SUPERVISOR SAYS: HURRY UP AND CLEAN THAT OIL!!!");
+                    lastTickerTime = currentSec;
+                }
+                if (activeSpills === 0) endShift();
+                document.getElementById('bank').innerText = savings.toLocaleString();
+                document.getElementById('toolName').innerText = tool.name;
+                document.getElementById('shift').innerText = DAYS[currentDayIdx] || "Weekend";
+                document.getElementById('timer').innerText = `0:${currentSec < 10 ? '0' : ''}${currentSec}`;
+            }
+
+            const imgData = btx.getImageData(0, 0, COLS, ROWS).data;
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            ctx.fillStyle = "black"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const cellW = canvas.width / COLS; const cellH = canvas.height / ROWS;
+            ctx.font = `${cellH}px monospace`;
+
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const i = (y * COLS + x) * 4;
+                    const r = imgData[i]; const g = imgData[i+1]; const b = imgData[i+2];
+                    const luma = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+                    const char = RAMP[Math.floor(luma * (RAMP.length - 1))];
+                    if (char !== " ") {
+                        if (r > 200 && g < 10 && b < 10) ctx.fillStyle = "#f00"; 
+                        else if (r < 10 && g < 10 && b > 200) ctx.fillStyle = "#1E90FF"; 
+                        else if (isRetired && r > 100 && g > 100 && b > 100) ctx.fillStyle = "#fff";
+                        else if (r > g + 20) ctx.fillStyle = "#f44"; 
+                        else ctx.fillStyle = "#0f4"; 
+                        ctx.fillText(char, x * cellW, y * cellH);
+                    }
+                }
+            }
+            if (mouse.active && !gameOver) {
+                ctx.strokeStyle = "#fff";
+                ctx.strokeRect(mouse.x * cellW - tool.gpm, mouse.y * cellH - tool.gpm, tool.gpm*2, tool.gpm*2);
+            }
+            requestAnimationFrame(render);
+        }
+        render();
+    </script>
+</body>
+</html>
