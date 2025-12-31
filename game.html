@@ -7,7 +7,7 @@
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
         canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
-        #ui { position: absolute; top: 10px; left: 10px; color: #FFD700; pointer-events: auto; z-index: 1000; font-size: 14px; text-shadow: 2px 2px 2px #000; font-weight: bold; }
+        #ui { position: absolute; top: 10px; left: 10px; color: #FFD700; pointer-events: none; z-index: 10; font-size: 14px; text-shadow: 2px 2px 2px #000; font-weight: bold; }
         #ui span.company-name { color: #1E90FF; font-size: 16px; }
         #ticker { position: absolute; top: 80px; width: 100%; color: #FFD700; font-weight: bold; font-size: 20px; white-space: nowrap; pointer-events: none; z-index: 5; display: none; text-shadow: 2px 2px 2px #000; }
         
@@ -74,8 +74,6 @@
     </div>
 
     <div id="ui">
-        <button id="backBtn" onclick="location.href='index.html'" style="width:auto; padding:5px 10px; background:#444; color:#fff; font-size:10px; margin-bottom:5px;">← BACK TO HUB</button>
-        <br>
         <span class="company-name">SMITH CONSTRUCTION - ICE UNIT</span><br>
         TOOL: <span id="toolName">Garden Hose</span><br>
         SAVINGS: $<span id="bank">0</span><br>
@@ -116,13 +114,6 @@
         const startBtn = document.getElementById('startBtn');
         const shopArea = document.getElementById('shop-area');
         const tickerEl = document.getElementById('ticker');
-
-        // Ensure Back button responds to touch on mobile devices
-        const backBtn = document.getElementById('backBtn');
-        if (backBtn) {
-            backBtn.addEventListener('touchend', function(e){ e.preventDefault(); window.location.href = 'index.html'; }, {passive:false});
-            backBtn.addEventListener('click', function(e){ /* click fallback already provided via onclick attribute */ });
-        }
 
         let savings = 0;
         let currentToolIdx = 0;
