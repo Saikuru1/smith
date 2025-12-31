@@ -7,9 +7,27 @@
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
         canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
-        #ui { position: absolute; top: 10px; left: 10px; color: #FFD700; pointer-events: none; z-index: 10; font-size: 14px; text-shadow: 2px 2px 2px #000; font-weight: bold; }
+        
+        /* The UI container is already set to sit above the game canvas */
+        #ui { position: absolute; top: 10px; left: 10px; color: #FFD700; pointer-events: none; z-index: 15; font-size: 14px; text-shadow: 2px 2px 2px #000; font-weight: bold; }
+        
+        /* This ensures the specific button inside the UI is clickable */
+        .back-btn { 
+            pointer-events: auto; 
+            background: #222; 
+            color: #aaa; 
+            border: 1px solid #444; 
+            padding: 4px 8px; 
+            font-size: 10px; 
+            cursor: pointer; 
+            font-family: monospace;
+            margin-bottom: 8px;
+            border-radius: 3px;
+        }
+        .back-btn:hover { background: #444; color: #fff; }
+
         #ui span.company-name { color: #1E90FF; font-size: 16px; }
-        #ticker { position: absolute; top: 80px; width: 100%; color: #FFD700; font-weight: bold; font-size: 20px; white-space: nowrap; pointer-events: none; z-index: 5; display: none; text-shadow: 2px 2px 2px #000; }
+        #ticker { position: absolute; top: 110px; width: 100%; color: #FFD700; font-weight: bold; font-size: 20px; white-space: nowrap; pointer-events: none; z-index: 5; display: none; text-shadow: 2px 2px 2px #000; }
         
         #overlay, #intro-overlay, #win-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
@@ -74,6 +92,7 @@
     </div>
 
     <div id="ui">
+        <button class="back-btn" onclick="location.href='index.html'">← BACK TO HUB</button><br>
         <span class="company-name">SMITH CONSTRUCTION - ICE UNIT</span><br>
         TOOL: <span id="toolName">Garden Hose</span><br>
         SAVINGS: $<span id="bank">0</span><br>
@@ -171,39 +190,35 @@
             btx.fillRect(0, 0, COLS, ROWS);
 
             if (isRetired) {
-                btx.fillStyle = "#aaa";
-                btx.fillRect(20, 15, 60, 25);
-                btx.fillStyle = "#888";
-                btx.fillRect(15, 25, 15, 15); btx.fillRect(70, 25, 15, 15);
-                btx.fillStyle = "#000";
-                for(let i=0; i<5; i++) btx.fillRect(25+(i*12), 20, 5, 5);
-                btx.fillStyle = "#fff";
-                btx.fillRect(0, ROWS-5, COLS, 5);
+                btx.fillStyle = "#aaa"; btx.fillRect(20, 15, 60, 25);
+                btx.fillStyle = "#888"; btx.fillRect(15, 25, 15, 15); btx.fillRect(70, 25, 15, 15);
+                btx.fillStyle = "#000"; for(let i=0; i<5; i++) btx.fillRect(25+(i*12), 20, 5, 5);
+                btx.fillStyle = "#fff"; btx.fillRect(0, ROWS-5, COLS, 5);
             } else {
                 btx.fillStyle = "#999"; btx.fillRect(20, 5, 12, ROWS);
                 btx.fillStyle = "#bbb"; btx.beginPath(); btx.arc(80, ROWS, 20, Math.PI, 0); btx.fill();
                 btx.fillStyle = "#777"; btx.fillRect(0, ROWS-3, COLS, 3);
             }
 
-            let carX = isRetired ? 40 : 55;
             let groundY = isRetired ? ROWS - 5 : ROWS - 3;
 
+            if (ownedItems.some(i => i.includes("Truck"))) {
+                let truckX = isRetired ? 60 : 55;
+                btx.fillStyle = "#0000ff"; 
+                btx.fillRect(truckX, groundY-3, 10, 3); 
+                btx.fillRect(truckX+10, groundY-6, 7, 6); 
+                btx.fillStyle = "#111"; 
+                btx.beginPath(); btx.arc(truckX+3, groundY, 2, 0, Math.PI*2); btx.fill();
+                btx.beginPath(); btx.arc(truckX+14, groundY, 2, 0, Math.PI*2); btx.fill();
+            }
             if (ownedItems.includes("New Corvette")) {
+                let carX = isRetired ? 40 : 55;
                 btx.fillStyle = "#ff0000"; 
                 btx.fillRect(carX, groundY-2, 16, 2); 
                 btx.fillRect(carX+6, groundY-4, 6, 2); 
                 btx.fillStyle = "#111"; 
                 btx.beginPath(); btx.arc(carX+3, groundY, 1.5, 0, Math.PI*2); btx.fill();
                 btx.beginPath(); btx.arc(carX+13, groundY, 1.5, 0, Math.PI*2); btx.fill();
-                if(isRetired) carX += 20;
-            }
-            if (ownedItems.some(i => i.includes("Truck"))) {
-                btx.fillStyle = "#0000ff"; 
-                btx.fillRect(carX, groundY-3, 10, 3); 
-                btx.fillRect(carX+10, groundY-6, 7, 6); 
-                btx.fillStyle = "#111"; 
-                btx.beginPath(); btx.arc(carX+3, groundY, 2, 0, Math.PI*2); btx.fill();
-                btx.beginPath(); btx.arc(carX+14, groundY, 2, 0, Math.PI*2); btx.fill();
             }
         }
 
@@ -212,7 +227,8 @@
             tickerEl.style.left = '100%';
             let pos = window.innerWidth;
             const scroll = () => {
-                pos -= 5; tickerEl.style.left = pos + 'px';
+                pos -= 3; 
+                tickerEl.style.left = pos + 'px';
                 if (pos > -tickerEl.offsetWidth) requestAnimationFrame(scroll);
                 else tickerEl.style.display = 'none';
             };
@@ -222,10 +238,16 @@
         function startGame() {
             if (currentDayIdx > 4) currentDayIdx = 0;
             overlay.style.display = 'none';
+            shopArea.style.display = 'none'; 
             generateSpills();
             shiftStartTime = Date.now();
             lastTickerTime = 0;
             gameOver = false;
+            
+            if (lastVacation !== "") {
+                runTicker(`WOW! MAN, DID YOU ENJOY THAT TRIP TO THE ${lastVacation.toUpperCase()}!?`);
+                lastVacation = "";
+            }
         }
 
         function endShift() {
@@ -242,11 +264,16 @@
 
             overlay.style.display = 'flex';
             document.getElementById('stats-display').innerText = `Shift Pay: $${pay} | Total Savings: $${savings}`;
+            
             if (currentDayIdx < 4) {
                 currentDayIdx++;
+                document.getElementById('overlay-title').innerText = "SHIFT COMPLETE";
+                shopArea.style.display = 'none'; 
                 startBtn.innerText = `START ${DAYS[currentDayIdx].toUpperCase()} SHIFT`;
             } else {
-                currentDayIdx = 5; renderShop();
+                currentDayIdx = 5; 
+                document.getElementById('overlay-title').innerText = "WEEKEND PAYROLL";
+                renderShop();
                 startBtn.innerText = "START NEW WORK WEEK";
             }
         }
@@ -277,7 +304,8 @@
                 btn.innerText = isOwned ? `OWNED: ${item.name}` : `${item.name} ($${item.price})`;
                 btn.disabled = isOwned || savings < item.price;
                 btn.onclick = () => { 
-                    savings -= item.price; ownedItems.push(item.name); 
+                    savings -= item.price; 
+                    ownedItems.push(item.name); 
                     if(item.type === "vac") lastVacation = item.name;
                     renderShop(); 
                 };
