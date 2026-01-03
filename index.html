@@ -608,11 +608,10 @@ const POLICIES = ["Internal Hub.", "PPE Required.", "Hot Work Permit Only.", "Mu
 
         // Use a CSP-safe 7-day forecast (Open-Meteo) instead of external widget
         fetch7DayForecast();
-
         loadSavedSchedule();
         renderHazards(); 
         highlightSchedule(); 
-        loadPolicy();
+        initDirectory();
         // start hourly heartbeat + purge schedule
         scheduleHourlyPurge();
     }
@@ -837,9 +836,6 @@ const POLICIES = ["Internal Hub.", "PPE Required.", "Hot Work Permit Only.", "Mu
         renderHazards();
     }   
     
-    function loadPolicy() { 
-        document.getElementById('policy-viewer').innerText = POLICIES[document.getElementById('policy-select').value]; 
-     }
  
      // --- Replace the simple loader above with the full searchable policy DB ---
      // FULL DATABASE FROM YOUR RECENT FILES
