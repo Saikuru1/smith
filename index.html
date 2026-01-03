@@ -250,17 +250,37 @@
          </div>       
 
         <div id="policies" class="tab-content">
-            <div class="card" style="flex-grow: 1; display: flex; flex-direction: column;">
-                <h3>Manuals</h3>
-                <select id="policy-select" onchange="loadPolicy()">
-                    <option value="0">Introduction</option>
-                    <option value="1">PPE Requirements</option>
-                    <option value="2">Hot Work Safety</option>
-                    <option value="3">Refinery Evacuation</option>
-                </select>
-                <div id="policy-viewer" style="background:#eee; color:#111; padding:15px; border-radius:5px; margin-top:10px; font-size:0.85rem; overflow-y: auto; flex-grow: 1;"></div>
-            </div>
-        </div>
+             <div class="card" style="flex-grow: 1; display: flex; flex-direction: column; min-height: 85vh; padding: 10px;">
+                 <h3 style="margin-top: 5px;">Policy Library</h3>
+                 
+                 <div style="position: relative;">
+                     <input type="text" id="policy-search" 
+                            placeholder="🔍 Type keywords (Flare, Tank, Skim)..." 
+                            onkeyup="filterPolicies()"
+                            style="font-size: 1rem; padding: 15px; border: 2px solid #333;">
+                 </div>
+ 
+                 <button onclick="toggleDirectory()" 
+                         style="background: #333; color: var(--smith-gold); margin-top: 10px; font-size: 0.75rem; border: 1px solid #444; padding: 8px;">
+                     <span id="dir-toggle-text">📂 SHOW ALL 22 POLICIES</span>
+                 </button>
+ 
+                 <div id="master-directory" class="hidden" 
+                      style="background: #111; border: 1px solid #333; margin-top: 5px; border-radius: 5px; max-height: 300px; overflow-y: auto;">
+                     </div>
+ 
+                 <div id="policy-list" style="margin-top:5px; max-height: 250px; overflow-y: auto;"></div>
+ 
+                 <div id="pdf-viewer-wrap" class="hidden" 
+                      style="flex-grow: 1; margin-top: 10px; border: 2px solid var(--smith-gold); border-radius: 8px; overflow: hidden; background: #fff; display: flex; flex-direction: column;">
+                     <div style="background: var(--smith-blue); color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center;">
+                         <span id="current-policy-title" style="font-size: 0.7rem; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%;"></span>
+                         <button onclick="closePDF()" style="width: auto; padding: 5px 15px; background: var(--danger); font-size: 0.7rem; margin: 0;">CLOSE</button>
+                     </div>
+                     <iframe id="pdf-frame" src="" width="100%" style="flex-grow: 1; border: none; min-height: 400px;"></iframe>
+                 </div>
+             </div>
+         </div>    
     </div>
 </div>
 
@@ -819,7 +839,95 @@ const POLICIES = ["Internal Hub.", "PPE Required.", "Hot Work Permit Only.", "Mu
     
     function loadPolicy() { 
         document.getElementById('policy-viewer').innerText = POLICIES[document.getElementById('policy-select').value]; 
-    }
+     }
+ 
+     // --- Replace the simple loader above with the full searchable policy DB ---
+     // FULL DATABASE FROM YOUR RECENT FILES
+     const POLICY_DB = [
+         { id: "SCI-S001", title: "Desalter Offload" },
+         { id: "SCI-S002", title: "TK84 Offload" },
+         { id: "SCI-S003", title: "West Pad Cleaning" },
+         { id: "SCI-S004", title: "Vactor Pad Cleaning" },
+         { id: "SCI-S005", title: "East Pad Cleaning" },
+         { id: "SCI-S006", title: "PSV Decontamination" },
+         { id: "SCI-S007", title: "Barrel Disposal" },
+         { id: "SCI-S008", title: "Tote Disposal" },
+         { id: "SCI-S009", title: "Catalyst Bin Changeout" },
+         { id: "SCI-S010", title: "42\" Lift Station Skim" },
+         { id: "SCI-S011", title: "WWT 002 Water Skim" },
+         { id: "SCI-S012", title: "N7 Nozzle Cleanout" },
+         { id: "SCI-S013", title: "General Product Draw" },
+         { id: "SCI-S014", title: "TK18 Product Draw" },
+         { id: "SCI-S015", title: "V9002 ASO Draw" },
+         { id: "SCI-S016", title: "East Flare Draw" },
+         { id: "SCI-S017", title: "West Flare Draw" },
+         { id: "SCI-S018", title: "Sewer Flush" },
+         { id: "SCI-S020", title: "Tank 158 Off-Loading" },
+         { id: "SCI-021",  title: "Crude Flare Draw" },
+         { id: "SCI-022",  title: "West Flare" },
+         { id: "REF-EVAC", title: "Refinery Evacuation" }
+     ];
+ 
+     function initDirectory() {
+         const dir = document.getElementById('master-directory');
+         if(!dir) return;
+         dir.innerHTML = POLICY_DB.map(p => `
+             <div onclick="loadPDF('${p.id}', '${p.title}')" 
+                  style="padding: 12px; border-bottom: 1px solid #222; font-size: 0.8rem; display: flex; align-items: center;">
+                 <span style="color: var(--smith-gold); font-weight: bold; width: 80px; flex-shrink: 0;">${p.id}</span>
+                 <span style="color: #eee;">${p.title}</span>
+             </div>
+         `).join('');
+     }
+ 
+     function toggleDirectory() {
+         const dir = document.getElementById('master-directory');
+         const btnText = document.getElementById('dir-toggle-text');
+         if(!dir || !btnText) return;
+         const isHidden = dir.classList.toggle('hidden');
+         btnText.innerText = isHidden ? "📂 SHOW ALL 22 POLICIES" : "🔼 HIDE DIRECTORY";
+     }
+ 
+     function filterPolicies() {
+         const query = document.getElementById('policy-search').value.toLowerCase();
+         const list = document.getElementById('policy-list');
+         const dir = document.getElementById('master-directory');
+         if(!list) return;
+         if (query.length > 0 && dir) dir.classList.add('hidden');
+         list.innerHTML = "";
+         if (query.length < 1) return;
+         const filtered = POLICY_DB.filter(p => p.title.toLowerCase().includes(query) || p.id.toLowerCase().includes(query));
+         filtered.forEach(p => {
+             const item = document.createElement('div');
+             item.style.padding = "15px";
+             item.style.background = "#1a1a1a";
+             item.style.borderLeft = "4px solid var(--smith-gold)";
+             item.style.marginBottom = "5px";
+             item.innerHTML = `<div style="font-size:0.7rem; color:var(--smith-gold)">${p.id}</div><div style="font-size:0.9rem">${p.title}</div>`;
+             item.onclick = () => loadPDF(p.id, p.title);
+             list.appendChild(item);
+         });
+     }
+ 
+     function loadPDF(id, title) {
+         const frame = document.getElementById('pdf-frame');
+         const titleEl = document.getElementById('current-policy-title');
+         if(frame) frame.src = `./policies/${id}.pdf`;
+         if(titleEl) titleEl.innerText = title;
+         document.getElementById('pdf-viewer-wrap').classList.remove('hidden');
+         document.getElementById('master-directory').classList.add('hidden');
+         document.getElementById('policy-list').innerHTML = "";
+         document.getElementById('policy-search').value = "";
+     }
+ 
+     function closePDF() {
+         const frame = document.getElementById('pdf-frame');
+         if(frame) frame.src = "";
+         document.getElementById('pdf-viewer-wrap').classList.add('hidden');
+     }
+ 
+     // Run on startup
+     initDirectory();
 
     function highlightSchedule() {
         const referenceMonday = new Date(2025, 11, 29);
