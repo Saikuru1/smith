@@ -40,21 +40,6 @@
 
         .card { background: var(--card-bg); border-radius: 10px; padding: 15px; margin-bottom: 15px; border-left: 5px solid var(--smith-blue); position: relative; }
         
-                /* JSA BUILDER STYLES */
-         #hazard-db { max-height: 300px; overflow-y: auto; border: 1px solid #333; border-radius: 5px; background: #000; margin-top: 10px; }
-         .hazard-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #222; font-size: 0.85rem; }
-         .hazard-item:last-child { border-bottom: none; }
-         .add-btn { width: 40px; height: 30px; background: var(--smith-gold); color: black; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
-         .add-btn.added { background: #444; color: #888; }
-        
-         /* POPUP MODAL */
-         #jsa-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
-         .modal-content { background: white; color: black; padding: 20px; border-radius: 5px; max-width: 600px; margin: 0 auto; font-family: "Courier New", Courier, monospace; }
-         .modal-header { text-align: center; border-bottom: 2px solid black; margin-bottom: 15px; padding-bottom: 10px; }
-         .jsa-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-         .jsa-table th, .jsa-table td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; font-size: 0.8rem; }
-         .close-modal { background: var(--danger); color: white; border: none; padding: 10px; width: 100%; margin-top: 20px; border-radius: 5px; font-weight: bold; }
-
         #announcement-banner { background: rgba(255, 215, 0, 0.1); border: 1px solid var(--smith-gold); border-radius: 8px; padding: 12px; margin-bottom: 15px; font-size: 0.85rem; }
 
         .compass-wrapper { position: relative; width: 120px; height: 120px; margin: 5px auto; }
@@ -103,33 +88,6 @@
     </style>
 </head>
 <body>
-
- <div id="jsa-modal">
-     <div class="modal-content">
-         <div class="modal-header">
-             <h2 style="margin:0;">SMITH CONSTRUCTION</h2>
-             <div style="font-size: 0.9rem; font-weight: bold;">JSA DIGITAL REFERENCE</div>
-         </div>
-         <p><strong>WORK ORDER #:</strong> <span id="out-wo"></span></p>
-         <p><strong>DATE/TIME:</strong> <span id="out-date"></span></p>
-         
-         <table class="jsa-table">
-             <thead>
-                 <tr style="background: #eee;">
-                     <th style="width: 40%;">POTENTIAL HAZARD</th>
-                     <th style="width: 60%;">ACTIONS TO MITIGATE</th>
-                 </tr>
-             </thead>
-             <tbody id="jsa-results-body">
-                 </tbody>
-         </table>
-         
-         <div style="margin-top: 20px; font-size: 0.7rem; text-align: center; border-top: 1px solid #ccc; padding-top: 10px;">
-             ANYONE CAN STOP AN UNSAFE JOB! IT IS EVERYONE'S RESPONSIBILITY!
-         </div>
-         <button class="close-modal" onclick="closeJSAModal()">CLOSE & CLEAR</button>
-     </div>
- </div>
 
 <div id="siren" onclick="this.style.display='none'">
     <div style="font-size: 2.5rem; font-weight: bold;">🚨 ALERT 🚨</div>
@@ -231,23 +189,14 @@
         </div>
 
         <div id="jsa" class="tab-content">
-             <div class="card">
-             <h3 style="margin-top:0;">Digital JSA Builder</h3>
-             <label style="font-size:0.7rem; color:var(--smith-gold)">REFERENCE WORK ORDER #</label>
-             <input type="text" id="jsa-wo" placeholder="Example: WO-9982">
-             
-             <div style="margin-top:15px; font-size:0.8rem; font-weight:bold;">
-                 SELECT APPLICABLE HAZARDS:
-             </div>
-             <div id="hazard-db">
-                 </div>
-             
-             <div id="selected-count" style="margin-top:10px; font-size:0.75rem; color:var(--smith-gold);">
-                 Selected: None
-             </div>
-             
-             <button onclick="generateJSA()" style="margin-top:15px; background:var(--smith-blue)">FINALIZE & VIEW OUTLINE</button>
-         </div>       
+            <div class="card">
+                <h3>JSA Builder</h3>
+                <input type="text" id="jsa-wo" placeholder="Work Order #">
+                <div id="jsa-list" style="margin:10px 0; font-size:0.8rem; color:var(--smith-gold);">Selected: None</div>
+                <div id="hazard-db"></div>
+                <button onclick="generateJSA()">FINALIZE</button>
+            </div>
+        </div>
 
         <div id="policies" class="tab-content">
             <div class="card" style="flex-grow: 1; display: flex; flex-direction: column;">
@@ -277,28 +226,9 @@
 <input type="file" id="vision-input" accept="image/*" class="hidden" onchange="processFidelityVision(this.files[0])">
 
 <script>
-const ADMINS = ["CONNER", "BRYAN", "CALVIN"];
-// JSA Builder master hazard DB (keeps separate from runtime HAZARDS)
-const HAZARD_DATABASE = [
-    { h: "High H2S Service Area", m: "Hole watch required. Every person entering area must wear fresh air and use a four gas monitor." },
-    { h: "Slips, Trips, Falls (Site Conditions)", m: "Clean work site, watch footing, be aware of hoses and equipment, utilize three-point contact." },
-    { h: "Falling Objects (Overhead Work)", m: "Establish barricades/red tape, be aware of overhead activity, use tool lanyards." },
-    { h: "Fall Hazard (Elevated Surface)", m: "Wear proper Fall Protection PPE, inspect harness/lanyard, ensure 100% tie-off." },
-    { h: "Crushing or Pinch Points", m: "Never position self between/under a load. Identify line-of-fire hazards. Use tag lines." },
-    { h: "Sharp Contact Points", m: "Be aware of edges; wear proper cut-resistant PPE (Gloves/Sleeves)." },
-    { h: "Thermal Burns (Hot/Cold)", m: "Identify hot surfaces, use insulated gloves, maintain safe distance from steam/process lines." },
-    { h: "Inadequate Lighting", m: "Utilize explosion-proof portable lighting; ensure work area is fully illuminated." },
-    { h: "Chemical Exposure (Liquid/Vapor)", m: "Review SDS. Wear chemical-resistant suits/gloves. Locate nearest eyewash/safety shower." },
-    { h: "Nitrogen / CO2 Exposure (Inert Gas)", m: "Monitor O2 levels. Ensure proper ventilation. Do not enter confined spaces without permit." },
-    { h: "Electrical Hazards / Overhead Lines", m: "Maintain 10ft clearance. Use spotter for trucks/equipment. Verify LOTO and HECL complete." },
-    { h: "Heat or Cold Stress", m: "Hydrate frequently. Utilize cooling trailers or warming stations. Monitor pulse/body temp." },
-    { h: "Ergonomics / Strains", m: "Use proper lifting techniques (legs, not back). Get help for heavy loads or use mechanical aid." },
-    { h: "Adverse Weather Conditions", m: "Monitor radar. Wear appropriate weather gear. Stop work if lightning is within 10 miles." },
-    { h: "Inadequate Clearance", m: "Scan surroundings. Proper body position is useful. Move obstructions before work." },
-    { h: "Stored Energy (Pressure/Spring)", m: "Verify equipment is depressured and drained. Follow LOTO/Try procedures." }
-];  
-
-const POLICIES = ["Internal Hub.", "PPE Required.", "Hot Work Permit Only.", "Muster Point A."];
+    const ADMINS = ["CONNER", "BRYAN", "CALVIN"];
+    const HAZARDS = [{h: "High Pressure", a: "Check whip-checks."}, {h: "H2S Risk", a: "Move upwind."}, {h: "Slip/Trip", a: "Clean area."}];
+    const POLICIES = ["Internal Hub.", "PPE Required.", "Hot Work Permit Only.", "Muster Point A."];
 
     let myID, myPass, myKey, nodePeer, discoveryID, connections = {}, selectedHazards = [];
     let isLighthouse = false;
@@ -743,79 +673,20 @@ const POLICIES = ["Internal Hub.", "PPE Required.", "Hot Work Permit Only.", "Mu
         if(id === 'radar') fetchSevereAlerts();
     }
     
-    // JSA Builder runtime state (separate variable name to avoid collisions)
-    let JSA_selectedHazards = [];
- 
     function renderHazards() {
         const db = document.getElementById('hazard-db');
-        if (!db) return;
         db.innerHTML = "";
-        HAZARD_DATABASE.forEach((item, index) => {
-            const isAdded = JSA_selectedHazards.find(s => s.h === item.h);
-            db.innerHTML += `
-                <div class="hazard-item">
-                    <span>${item.h}</span>
-                    <button class="add-btn ${isAdded ? 'added' : ''}" onclick="toggleHazard(${index})">
-                        ${isAdded ? '✓' : '+'}
-                    </button>
-                </div>
-            `;
+        HAZARDS.forEach((h, i) => {
+            db.innerHTML += `<div style="display:flex; justify-content:space-between; padding:5px; font-size:0.8rem;"><span>${h.h}</span><button onclick="addHaz(${i})" style="width:40px; padding:2px; margin:0; background:var(--smith-gold); color:#000;">+</button></div>`;
         });
     }
- 
-    function toggleHazard(index) {
-        const hazard = HAZARD_DATABASE[index];
-        const exists = JSA_selectedHazards.findIndex(s => s.h === hazard.h);
-         
-        if (exists > -1) {
-            JSA_selectedHazards.splice(exists, 1);
-        } else {
-            JSA_selectedHazards.push(hazard);
-        }
-        
-        const countTxt = document.getElementById('selected-count');
-        if (countTxt) countTxt.innerText = JSA_selectedHazards.length > 0 
-            ? `Selected: ${JSA_selectedHazards.map(x => x.h).join(", ")}` 
-            : "Selected: None";
-             
-        renderHazards();
+    
+    function addHaz(i) { 
+        selectedHazards.push(HAZARDS[i]); 
+        document.getElementById('jsa-list').innerText = "Selected: " + selectedHazards.map(x=>x.h).join(", "); 
     }
- 
-    function generateJSA() {
-        const woEl = document.getElementById('jsa-wo');
-        const wo = woEl ? woEl.value.trim() : '';
-        if (!wo) return alert("Please enter a Work Order # first.");
-        if (JSA_selectedHazards.length === 0) return alert("Select at least one potential hazard.");
-
-        // Populate Modal
-        document.getElementById('out-wo').innerText = wo;
-        document.getElementById('out-date').innerText = new Date().toLocaleString();
-         
-        const tbody = document.getElementById('jsa-results-body');
-        tbody.innerHTML = "";
-         
-        JSA_selectedHazards.forEach(item => {
-            tbody.innerHTML += `
-                <tr>
-                    <td><strong>${item.h}</strong></td>
-                    <td>${item.m}</td>
-                </tr>
-            `;
-        });
- 
-        document.getElementById('jsa-modal').style.display = 'block';
-    }
- 
-    function closeJSAModal() {
-        document.getElementById('jsa-modal').style.display = 'none';
-        // Reset state for next JSA
-        JSA_selectedHazards = [];
-        const woEl = document.getElementById('jsa-wo');
-        if (woEl) woEl.value = "";
-        const sel = document.getElementById('selected-count');
-        if (sel) sel.innerText = "Selected: None";
-        renderHazards();
-    }   
+    
+    function generateJSA() { alert("JSA Ready."); }
     
     function loadPolicy() { 
         document.getElementById('policy-viewer').innerText = POLICIES[document.getElementById('policy-select').value]; 
